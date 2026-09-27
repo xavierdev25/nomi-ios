@@ -1,0 +1,10 @@
+# Xcode / XcodeGen — project.yml is the source of truth, project is regenerated via `xcodegen generate`
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+.build/
+*.swiftpm/
+
+# macOS
+.DS_Store
