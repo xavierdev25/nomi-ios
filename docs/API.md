@@ -8,8 +8,12 @@ La referencia completa de la API es Swagger UI del backend
 
 | Entorno | URL |
 |---|---|
-| Debug (simulador) | `http://localhost:8080/api` |
-| Release | Marcador sin desplegar (`NetworkConfig.swift`) |
+| Debug (simulador) | `http://localhost:8080/api` (`Config/Debug.xcconfig`) |
+| Debug en iPhone físico | `http://<nombre-del-Mac>.local:8080/api`, con `Config/Local.xcconfig` (ver el README) |
+| Release | Marcador sin desplegar (`Config/Release.xcconfig`) |
+
+La URL sale de la variable de compilación `NOMI_API_BASE_URL`, que el Info.plist expone como
+`NomiAPIBaseURL`. Si falta o no es una URL http/https válida, `NetworkConfig` usa la de siempre.
 
 JSON en ambos sentidos. Las fechas llegan como `LocalDateTime` sin zona
 (`2026-09-26T00:13:59.905824`), con 0 a 9 decimales: usar siempre `JSONDecoder.nomi`.
@@ -49,9 +53,15 @@ JSON en ambos sentidos. Las fechas llegan como `LocalDateTime` sin zona
 - **`POST /auth/register` no devuelve el usuario ni tokens**, solo un mensaje: hay que iniciar
   sesión después.
 - **Un pedido admite un solo pago.** Para pagar, primero `GET /payments/order/{id}` (404 = sin
-  pago) y solo si no existe `POST /payments` (`PaymentsAPI.checkoutURL`).
+  pago) y solo si no existe `POST /payments` (`PaymentsAPI.checkoutURL`). Pagar un pedido que ya
+  no está `PENDIENTE` o cuyo plazo venció responde 409.
+- **Plazo para pagar:** un pedido `PENDIENTE` se cancela solo si no se paga en 15 minutos.
+  `segundosParaPagar` (`Order.paymentDeadline(receivedAt:)`) es lo que queda, calculado por el
+  servidor: se usa en vez de `pagoExpiraEn` porque las fechas del backend no llevan zona. Con 2
+  pedidos sin pagar, `POST /orders` responde 409.
 - **Propina máxima:** 50 % del subtotal; más responde 400 y no se crea el pedido.
-- **Cancelar** solo en `PENDIENTE`; en otro estado responde 400.
+- **Cancelar** solo en `PENDIENTE`; en otro estado responde 400. Si el pago ya se aprobó responde
+  409 y el pedido pasa a preparación; si MercadoPago no responde, 503 (reintentar).
 - **Recomendaciones:** nunca son un error y nunca incluyen un producto que no cumpla las
   restricciones del estudiante (el backend filtra con las etiquetas dietéticas de los productos).
   Una lista vacía llega con `generatedBy = "SIN_CANDIDATOS"` (nada cumple los filtros) o

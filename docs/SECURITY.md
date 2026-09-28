@@ -20,8 +20,11 @@ anterior se recupera mientras sus tokens sigan vigentes.
 
 ## 2. Transporte
 
-- Release apunta a HTTPS. Debug usa `http://localhost:8080`, permitido por
-  `NSAllowsLocalNetworking` en `Info.plist`; **no añadas excepciones de ATS para otros dominios.**
+- Release apunta a HTTPS. Debug usa `http://localhost:8080`, o `http://<nombre-del-Mac>.local:8080`
+  en un iPhone físico, permitidos por `NSAllowsLocalNetworking` en `Info.plist`; **no añadas
+  excepciones de ATS para otros dominios.** El acceso a la red local pide permiso al usuario
+  (`NSLocalNetworkUsageDescription`).
+- `Config/Local.xcconfig` (URL local y equipo de firma) no se versiona.
 - Timeout de 15 s por petición.
 - No hay certificate pinning (pendiente para producción).
 
@@ -29,8 +32,10 @@ anterior se recupera mientras sus tokens sigan vigentes.
 
 - La app **no maneja datos de tarjeta.** El pago ocurre en el checkout de MercadoPago, que se abre
   en el navegador del sistema con la URL que devuelve el backend.
-- El estado del pago lo confirma el backend por webhook; la app solo lo consulta. Nunca marques un
-  pedido como pagado desde el cliente.
+- El estado del pago lo confirma el backend (webhook o conciliación con MercadoPago); la app solo
+  lo consulta. Nunca marques un pedido como pagado desde el cliente.
+- El plazo para pagar lo decide el backend: la cuenta atrás de la app es informativa y ocultar
+  "Pagar" al vencer solo evita un 409.
 - Los importes mostrados antes de pagar son una estimación; el monto cobrado lo calcula el backend.
 
 ## 4. Datos y registros

@@ -6,8 +6,14 @@ relevante para quien usa o mantiene la app va en **No publicado** hasta la sigui
 ## [No publicado]
 
 ### Añadido
+- URL del backend configurable por compilación (`NOMI_API_BASE_URL` en `Config/*.xcconfig`, con
+  un `Config/Local.xcconfig` opcional no versionado) para usar un iPhone físico contra el backend
+  del Mac. Por defecto sigue siendo `localhost` en Debug. Incluye el aviso de red local
+  (`NSLocalNetworkUsageDescription`) y 6 tests.
 - Renovación preventiva de la sesión: el access token se renueva antes de expirar leyendo su `exp`.
 - Pagar o cancelar un pedido pendiente desde el seguimiento.
+- Cuenta atrás del plazo para pagar en el seguimiento (`segundosParaPagar` del backend); al vencer
+  se oculta "Pagar" y se avisa de que el pedido se cancelará.
 - Desglose de importes (subtotal, propina, cargos y total cobrado) en el detalle del pedido.
 - Pantalla de error de arranque con reintento cuando la sesión guardada no se puede verificar.
 - Validación del registro en la app con las mismas reglas y mensajes que el backend.

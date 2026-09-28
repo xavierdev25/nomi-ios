@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Seguimiento de un pedido activo: línea de estados, estado del pago y código de confirmación.
-/// Mientras el pedido espera pago permite pagarlo o cancelarlo.
+/// Mientras el pedido espera pago muestra cuánto queda para pagar y permite pagarlo o cancelarlo.
 struct OrderTrackingView: View {
     @State var viewModel: OrderTrackingViewModel
     @Environment(\.openURL) private var openURL
@@ -100,15 +100,24 @@ struct OrderTrackingView: View {
             }
 
             if viewModel.awaitingPayment {
-                NMButton(label: "Pagar con MercadoPago", variant: .primary, loading: viewModel.isPaying, fullWidth: true) {
-                    Task {
-                        if let url = await viewModel.pay() {
-                            openURL(url)
+                // Se reevalúa cada segundo para ocultar "Pagar" justo al vencer el plazo.
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    let windowClosed = viewModel.isPaymentWindowClosed(at: context.date)
+                    VStack(alignment: .leading, spacing: NMSpacing.s3) {
+                        paymentDeadlineNotice(now: context.date, windowClosed: windowClosed)
+                        if !windowClosed {
+                            NMButton(label: "Pagar con MercadoPago", variant: .primary, loading: viewModel.isPaying, fullWidth: true) {
+                                Task {
+                                    if let url = await viewModel.pay() {
+                                        openURL(url)
+                                    }
+                                }
+                            }
+                        }
+                        NMButton(label: "Cancelar pedido", variant: .outline, loading: viewModel.isCancelling, fullWidth: true) {
+                            showCancelConfirm = true
                         }
                     }
-                }
-                NMButton(label: "Cancelar pedido", variant: .outline, loading: viewModel.isCancelling, fullWidth: true) {
-                    showCancelConfirm = true
                 }
             }
         }
@@ -116,6 +125,25 @@ struct OrderTrackingView: View {
         .background(NMColors.surface)
         .clipShape(RoundedRectangle(cornerRadius: NMRadius.lg))
         .overlay(RoundedRectangle(cornerRadius: NMRadius.lg).stroke(NMColors.line, lineWidth: 1))
+    }
+
+    /// Cuánto queda para pagar. Sin plazo (pedidos anteriores a la regla) no muestra nada.
+    @ViewBuilder
+    private func paymentDeadlineNotice(now: Date, windowClosed: Bool) -> some View {
+        if windowClosed {
+            HStack(alignment: .top, spacing: NMSpacing.s2) {
+                Image(nmIcon: NMIcon.clock).foregroundColor(NMColors.error)
+                Text("Se acabó el tiempo para pagar. El pedido se cancelará en unos segundos y los productos se liberarán.")
+                    .nmStyle(.body, color: NMColors.error)
+            }
+        } else if let deadline = viewModel.paymentDeadline, now < deadline {
+            HStack(alignment: .top, spacing: NMSpacing.s2) {
+                Image(nmIcon: NMIcon.clock).foregroundColor(NMColors.warning)
+                (Text("Tienes ").nmStyle(.body)
+                    + Text(timerInterval: now...deadline, countsDown: true).nmStyle(.bodyStrong)
+                    + Text(" para pagar. Si no, el pedido se cancela solo.").nmStyle(.body))
+            }
+        }
     }
 
     private var paymentStatusText: String {

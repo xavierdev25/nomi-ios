@@ -45,8 +45,18 @@ xcodebuild -project NomiIOS.xcodeproj -scheme NomiIOS \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
 
-> La URL del backend es fija por configuración de compilación (`NetworkConfig.swift`): en Debug
-> apunta a `localhost`, así que solo funciona en el simulador.
+### URL del backend
+
+La URL sale de la variable de compilación `NOMI_API_BASE_URL`: en Debug es
+`http://localhost:8080/api` (`Config/Debug.xcconfig`), que funciona en el simulador. Para usar un
+**iPhone físico** contra el backend de tu Mac, sin tocar el código:
+
+1. Copia `Config/Local.xcconfig.example` como `Config/Local.xcconfig` (no se versiona).
+2. Pon `NOMI_API_BASE_URL = http:/$()/<nombre-del-Mac>.local:8080/api`. El nombre sale de
+   `scutil --get LocalHostName`, y `$()` evita que `//` se tome como comentario.
+3. Pon tu equipo de Apple en `DEVELOPMENT_TEAM`, o elígelo en Xcode (Signing & Capabilities).
+4. `xcodegen generate` y ejecuta en el iPhone, conectado a la misma Wi-Fi que el Mac. La primera
+   vez, iOS pide permiso de red local: acéptalo.
 
 ## Estructura
 

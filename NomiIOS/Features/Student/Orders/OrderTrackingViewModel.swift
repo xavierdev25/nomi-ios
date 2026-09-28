@@ -14,6 +14,8 @@ final class OrderTrackingViewModel {
     private(set) var order: Order?
     /// `nil` mientras el pedido no tiene pago (`GET /payments/order/{id}` responde 404).
     private(set) var payment: PaymentResponse?
+    /// Cuándo vence el plazo para pagar, en el reloj del teléfono; `nil` si no hay plazo.
+    private(set) var paymentDeadline: Date?
     private(set) var isLoading = true
     private(set) var errorMessage: String?
     private(set) var isPaying = false
@@ -30,11 +32,27 @@ final class OrderTrackingViewModel {
         self.paymentsAPI = paymentsAPI
     }
 
-    /// Pendiente y sin pago aprobado. Al aprobarse el pago, el webhook pasa el pedido a
-    /// `PREPARANDO`; hasta entonces un pedido ya pagado no debe cancelarse, porque el backend
-    /// no reembolsa.
+    /// Pendiente y sin pago aprobado. Con el pago ya aprobado no se ofrece cancelar: el backend
+    /// pasaría el pedido a preparación en vez de cancelarlo (responde 409).
     var awaitingPayment: Bool {
         order?.status == .pendiente && payment?.isApproved != true
+    }
+
+    /// Si el plazo para pagar ya venció en `date`. El backend cancela el pedido en menos de un
+    /// minuto; mientras tanto no tiene sentido abrir MercadoPago (rechazaría el pago).
+    func isPaymentWindowClosed(at date: Date) -> Bool {
+        guard let paymentDeadline else { return false }
+        return date >= paymentDeadline
+    }
+
+    /// Plazo a mostrar tras una consulta. Cada consulta trae los segundos restantes redondeados
+    /// y con la latencia de la red: si el plazo apenas cambió se conserva el anterior, para que
+    /// la cuenta atrás no salte un segundo arriba y abajo cada 5 segundos.
+    nonisolated static func stableDeadline(current: Date?, reported: Date?) -> Date? {
+        guard let current, let reported, abs(reported.timeIntervalSince(current)) < 2 else {
+            return reported
+        }
+        return current
     }
 
     /// Inicia la consulta periódica; no hace nada si ya está en marcha.
@@ -78,7 +96,9 @@ final class OrderTrackingViewModel {
         actionError = nil
         defer { isCancelling = false }
         do {
-            order = try await ordersAPI.cancel(id: orderId, motivo: nil)
+            let cancelled = try await ordersAPI.cancel(id: orderId, motivo: nil)
+            order = cancelled
+            paymentDeadline = cancelled.paymentDeadline(receivedAt: .now)
         } catch is CancellationError {
         } catch {
             actionError = (error as? APIError)?.errorDescription ?? "No se pudo cancelar el pedido."
@@ -89,6 +109,8 @@ final class OrderTrackingViewModel {
         do {
             let fetched = try await ordersAPI.get(id: orderId)
             order = fetched
+            paymentDeadline = Self.stableDeadline(current: paymentDeadline,
+                                                  reported: fetched.paymentDeadline(receivedAt: .now))
             if fetched.status == .pendiente {
                 do {
                     payment = try await paymentsAPI.byOrder(orderId: orderId)

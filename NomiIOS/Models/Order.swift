@@ -12,7 +12,8 @@ struct OrderItem: Codable, Identifiable, Sendable {
 
 /// Estados del pedido. Transiciones válidas (las aplica el backend):
 /// `PENDIENTE → PREPARANDO → LISTO_PARA_RECOGER → EN_CAMINO → ENTREGADO`, y
-/// `PENDIENTE → CANCELADO`. El paso a `PREPARANDO` lo hace el webhook al aprobarse el pago.
+/// `PENDIENTE → CANCELADO`. El paso a `PREPARANDO` lo hace el backend al aprobarse el pago
+/// (webhook o conciliación). Un pedido que no se paga dentro de su plazo se cancela solo.
 enum OrderStatus: String, Codable, Sendable {
     case pendiente = "PENDIENTE"
     case preparando = "PREPARANDO"
@@ -44,6 +45,10 @@ struct Order: Codable, Identifiable, Sendable {
     /// Código de 4 dígitos que el estudiante muestra al recibir el pedido.
     let codigoConfirmacion: String?
     let fotoEntregaUrl: String?
+    /// Segundos que quedaban para pagar cuando respondió el backend; `nil` si el pedido ya no
+    /// está pendiente o es anterior a la regla de caducidad. Es relativo a propósito: las fechas
+    /// del backend no llevan zona y el reloj del teléfono puede ir desfasado.
+    let segundosParaPagar: Int?
     let creadoEn: Date?
     let actualizadoEn: Date?
 
@@ -51,6 +56,13 @@ struct Order: Codable, Identifiable, Sendable {
     /// la misma suma con la que el backend calcula el monto del pago.
     var chargedTotal: Decimal {
         total + (propina ?? 0) + (tarifaServicio ?? 0) + (comisionNomi ?? 0)
+    }
+
+    /// Momento, en el reloj del teléfono, en que vence el plazo para pagar, contado desde que
+    /// llegó la respuesta. `nil` si el pedido no espera pago o no tiene plazo.
+    func paymentDeadline(receivedAt: Date) -> Date? {
+        guard status == .pendiente, let segundosParaPagar else { return nil }
+        return receivedAt.addingTimeInterval(TimeInterval(max(0, segundosParaPagar)))
     }
 }
 

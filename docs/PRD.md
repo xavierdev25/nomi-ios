@@ -50,7 +50,8 @@ de esta app.
 - **RF-18** Seguimiento del pedido activo, actualizado cada 5 segundos: línea de estados, código
   de confirmación y estado del pago.
 - **RF-19** Pedido pendiente sin pago aprobado: permitir pagarlo (reutilizando el pago existente)
-  o cancelarlo con confirmación.
+  o cancelarlo con confirmación, mostrando cuánto queda para pagar. Al vencer el plazo se oculta
+  "Pagar" y se avisa de que el pedido se cancelará.
 - **RF-20** Detalle de pedidos terminados con desglose de importes.
 
 ### Favoritos y perfil
@@ -80,5 +81,6 @@ de esta app.
   el refresh token sea válido.
 - Una propina mayor al 50 % del subtotal no se puede seleccionar.
 - El total de un pedido en la lista coincide con el monto cobrado por MercadoPago.
-- Un pedido pendiente sin pagar se puede pagar o cancelar desde el seguimiento.
+- Un pedido pendiente sin pagar se puede pagar o cancelar desde el seguimiento, con la cuenta
+  atrás del plazo; al vencer, el pedido aparece cancelado sin intervención del estudiante.
 - Abrir la app sin conexión no cierra la sesión.

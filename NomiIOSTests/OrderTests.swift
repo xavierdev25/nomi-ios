@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Nomi
 
-/// Total cobrado de un pedido.
+/// Total cobrado y plazo para pagar de un pedido.
 @Suite("Order")
 struct OrderTests {
     /// Respuesta real de `POST /orders`: `total` es el subtotal de productos (4.00 + 6.00) y el
@@ -24,5 +24,53 @@ struct OrderTests {
         let order = try JSONDecoder.nomi.decode(Order.self, from: Data(json.utf8))
 
         #expect(NMFormat.currency(order.chargedTotal) == "S/ 10.00")
+    }
+
+    @Test func paymentDeadlineCountsFromWhenTheResponseArrived() throws {
+        let json = Self.createdOrder.replacingOccurrences(
+            of: #""fotoEntregaUrl":null"#, with: #""fotoEntregaUrl":null,"segundosParaPagar":840"#)
+        let order = try JSONDecoder.nomi.decode(Order.self, from: Data(json.utf8))
+        let receivedAt = Date(timeIntervalSince1970: 1_000_000)
+
+        #expect(order.segundosParaPagar == 840)
+        #expect(order.paymentDeadline(receivedAt: receivedAt) == receivedAt.addingTimeInterval(840))
+    }
+
+    /// Pedidos anteriores a la regla de caducidad: el backend no manda el campo.
+    @Test func orderWithoutDeadlineHasNoPaymentDeadline() throws {
+        let order = try JSONDecoder.nomi.decode(Order.self, from: Data(Self.createdOrder.utf8))
+
+        #expect(order.segundosParaPagar == nil)
+        #expect(order.paymentDeadline(receivedAt: .now) == nil)
+    }
+
+    @Test func onlyPendingOrdersHaveAPaymentDeadline() throws {
+        let json = Self.createdOrder
+            .replacingOccurrences(of: #""status":"PENDIENTE""#, with: #""status":"PREPARANDO""#)
+            .replacingOccurrences(of: #""fotoEntregaUrl":null"#, with: #""fotoEntregaUrl":null,"segundosParaPagar":840"#)
+        let order = try JSONDecoder.nomi.decode(Order.self, from: Data(json.utf8))
+
+        #expect(order.paymentDeadline(receivedAt: .now) == nil)
+    }
+}
+
+/// Cuenta atrás del plazo para pagar en el seguimiento del pedido.
+@Suite("OrderTrackingViewModel.stableDeadline")
+struct PaymentDeadlineTests {
+    private let base = Date(timeIntervalSince1970: 1_000_000)
+
+    @Test func smallDriftBetweenPollsKeepsTheCurrentDeadline() {
+        let reported = base.addingTimeInterval(1.4)
+        #expect(OrderTrackingViewModel.stableDeadline(current: base, reported: reported) == base)
+    }
+
+    @Test func realChangeReplacesTheDeadline() {
+        let reported = base.addingTimeInterval(-30)
+        #expect(OrderTrackingViewModel.stableDeadline(current: base, reported: reported) == reported)
+    }
+
+    @Test func firstPollAndLostDeadlineFollowTheBackend() {
+        #expect(OrderTrackingViewModel.stableDeadline(current: nil, reported: base) == base)
+        #expect(OrderTrackingViewModel.stableDeadline(current: base, reported: nil) == nil)
     }
 }

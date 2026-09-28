@@ -31,6 +31,10 @@
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<key>NomiAPIBaseURL</key>
+	<string>$(NOMI_API_BASE_URL)</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Nomi se conecta a un servidor de pruebas en tu red local.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

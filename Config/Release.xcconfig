@@ -1,0 +1,5 @@
+// Configuración de Release del target NomiIOS.
+//
+// La URL de producción todavía es un marcador (ver la auditoría técnica, M10). `$()` separa las
+// dos barras porque en un .xcconfig `//` empieza un comentario.
+NOMI_API_BASE_URL = https:/$()/api.nomi.app/api

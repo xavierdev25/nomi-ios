@@ -89,7 +89,9 @@ ViewModel en `StudentRootView`/`StudentTabView`.
 
 ## 9. Limitaciones conocidas
 
-- La URL del backend está fija en `NetworkConfig` (sin entornos).
+- La URL del backend se configura por compilación (`NOMI_API_BASE_URL` en `Config/*.xcconfig`,
+  expuesta en el Info.plist como `NomiAPIBaseURL`), pero Release todavía apunta a un marcador: no
+  hay entorno de producción.
 - Las fechas del backend llegan en hora local del servidor sin zona y se interpretan como UTC:
   hay que corregirlo antes de mostrarlas.
 - Detalle de todas las limitaciones del sistema: auditoría técnica en `nomi-docs`.

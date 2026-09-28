@@ -1,0 +1,8 @@
+// Configuración de Debug del target NomiIOS.
+//
+// URL del backend. En un .xcconfig, `//` empieza un comentario: `$()` separa las dos barras.
+// Para cambiarla en tu máquina sin tocar el repositorio (por ejemplo, para probar en un iPhone
+// físico contra el backend del Mac), crea Local.xcconfig a partir de Local.xcconfig.example.
+NOMI_API_BASE_URL = http:/$()/localhost:8080/api
+
+#include? "Local.xcconfig"

@@ -1,0 +1,9 @@
+// Copia este archivo como Config/Local.xcconfig para cambiar la configuración de Debug en tu
+// máquina. Local.xcconfig no se versiona.
+
+// Backend del Mac accesible desde un iPhone en la misma Wi-Fi. Sustituye <nombre-del-Mac> por el
+// nombre local del Mac (`scutil --get LocalHostName`). `$()` evita que `//` se tome como comentario.
+// NOMI_API_BASE_URL = http:/$()/<nombre-del-Mac>.local:8080/api
+
+// Equipo de Apple con el que se firma la app para instalarla en un dispositivo físico.
+// DEVELOPMENT_TEAM = <ID del equipo>

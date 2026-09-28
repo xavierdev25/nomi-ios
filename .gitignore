@@ -6,5 +6,8 @@ DerivedData/
 .build/
 *.swiftpm/
 
+# Configuración local de Xcode (URL del backend, equipo de firma): ver Config/Local.xcconfig.example
+Config/Local.xcconfig
+
 # macOS
 .DS_Store
